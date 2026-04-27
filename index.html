@@ -3,53 +3,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kalkulator Target Paket</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #f4f6f8;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-    }
-    .container {
-        background: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        width: 360px;
-    }
-    h2 {
-        text-align: center;
-    }
-    select, input {
-        width: 100%;
-        padding: 8px;
-        margin: 6px 0 12px;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-    }
-    button {
-        width: 100%;
-        padding: 10px;
-        background: #28a745;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-    }
-    button:hover {
-        background: #1e7e34;
-    }
-    .result {
-        margin-top: 15px;
-        font-weight: bold;
-        text-align: center;
-    }
+    body {font-family: Arial, sans-serif;background: #fff3e6;display: flex;justify-content: center;align-items: center;min-height: 100vh;}
+    .container {background: white;padding: 20px;border-radius: 16px;box-shadow: 0 6px 16px rgba(0,0,0,0.1);width: 360px;}
+    h2 {text-align: center;color: #ff6b00;}
+    .logo {text-align: center;font-weight: bold;color: #ff6b00;margin-bottom: 10px;font-size: 18px;}
+    select, input {width: 100%;padding: 10px;margin: 6px 0 12px;border-radius: 8px;border: 1px solid #ddd;}
+    button {width: 100%;padding: 12px;background: #ff6b00;color: white;border: none;border-radius: 8px;cursor: pointer;font-weight: bold;}
+    button:hover {background: #e65c00;}
+    .result {margin-top: 15px;font-weight: bold;text-align: center;line-height: 1.6;}
+    canvas {margin-top: 20px;}
 </style>
 </head>
-<body><div class="container">
-    <h2>Target Paket dari Bonus</h2><label>Pilih Tipe Kurir</label>
+<body>
+<div class="container">
+    <div class="logo">SPX</div>
+    <h2>Target Paket</h2><label>Pilih Tipe Kurir</label>
 <select id="tipe" onchange="setDefaultTarget()">
     <option value="dedicated">Dedicated</option>
     <option value="plus">Kurir Plus</option>
@@ -64,65 +34,100 @@
 <label>Target Bonus (Rp)</label>
 <input type="text" id="bonusInput" placeholder="Contoh: 2.000.000" oninput="formatInput(this)">
 
+<label>Jumlah Hari Kerja</label>
+<input type="number" id="hari" value="26">
+
 <button onclick="hitung()">Hitung</button>
 
 <div class="result" id="hasil"></div>
 
+<canvas id="chart"></canvas>
+
 </div><script>
-function formatRupiah(angka) {
-    return 'Rp' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+let chart;
+
+function formatInput(input){
+    let angka=input.value.replace(/[^0-9]/g,'');
+    input.value=angka.replace(/\B(?=(\d{3})+(?!\d))/g,".");
 }
 
-function formatInput(input) {
-    let angka = input.value.replace(/[^0-9]/g, '');
-    input.value = angka.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-}
-
-function setDefaultTarget() {
-    let tipe = document.getElementById('tipe').value;
-
-    if (tipe === "dedicated") {
-        document.getElementById('target1').value = 1900;
-        document.getElementById('target2').value = 3050;
-    } else {
-        document.getElementById('target1').value = 1025;
-        document.getElementById('target2').value = 2685;
+function setDefaultTarget(){
+    let tipe=document.getElementById('tipe').value;
+    if(tipe==="dedicated"){
+        document.getElementById('target1').value=1900;
+        document.getElementById('target2').value=3050;
+    }else{
+        document.getElementById('target1').value=1025;
+        document.getElementById('target2').value=2685;
     }
 }
 
-function hitung() {
-    let tipe = document.getElementById('tipe').value;
-    let t1 = parseInt(document.getElementById('target1').value) || 0;
-    let t2 = parseInt(document.getElementById('target2').value) || 0;
-    let bonusTarget = parseInt(document.getElementById('bonusInput').value.replace(/[^0-9]/g, '')) || 0;
+function hitung(){
+    let tipe=document.getElementById('tipe').value;
+    let t1=parseInt(document.getElementById('target1').value)||0;
+    let t2=parseInt(document.getElementById('target2').value)||0;
+    let hari=parseInt(document.getElementById('hari').value)||26;
+    let bonusTarget=parseInt(document.getElementById('bonusInput').value.replace(/[^0-9]/g,''))||0;
 
-    let b1, b2, paket = 0;
+    let b1,b2,paket=0;
 
-    if (tipe === "dedicated") {
-        b1 = 800;
-        b2 = 1100;
-    } else {
-        b1 = 450;
-        b2 = 775;
+    if(tipe==="dedicated"){b1=800;b2=1100;}else{b1=450;b2=775;}
+
+    let maxTier1=(t2-t1)*b1;
+
+    if(bonusTarget<=maxTier1){
+        paket=t1+Math.ceil(bonusTarget/b1);
+    }else{
+        let sisa=bonusTarget-maxTier1;
+        paket=t2+Math.ceil(sisa/b2);
     }
 
-    let maxTier1 = (t2 - t1) * b1;
+    let perHari=Math.ceil(paket/hari);
+    let estimasiHari=Math.ceil(paket/perHari);
 
-    if (bonusTarget <= maxTier1) {
-        paket = t1 + Math.ceil(bonusTarget / b1);
-    } else {
-        let sisa = bonusTarget - maxTier1;
-        paket = t2 + Math.ceil(sisa / b2);
-    }
+    document.getElementById('hasil').innerHTML=
+        "Target Paket: "+paket+" paket<br>"+
+        "Paket per Hari: "+perHari+" paket/hari<br>"+
+        "Estimasi Selesai: "+estimasiHari+" hari";
 
-    let estimasiHari = Math.ceil(paket / 144);
-
-    document.getElementById('hasil').innerHTML =
-        "Target Paket: " + paket + " paket<br>" +
-        "Paket per Hari (26 hari kerja): " + Math.ceil(paket / 26) + " paket/hari";
+    buatChart(paket, perHari);
 }
 
-// set default saat pertama buka
+function buatChart(total, perHari){
+    let data = [];
+    let labels = [];
+    let current = 0;
+    let day = 1;
+
+    while(current < total){
+        current += perHari;
+        data.push(Math.min(current, total));
+        labels.push("Hari " + day);
+        day++;
+    }
+
+    if(chart) chart.destroy();
+
+    chart = new Chart(document.getElementById('chart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Progress Paket',
+                data: data,
+                borderWidth: 2,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true }
+            }
+        }
+    });
+}
+
 setDefaultTarget();
 </script></body>
 </html>
